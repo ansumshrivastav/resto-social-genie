@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +18,7 @@ import {
 import ChatMessage from "@/components/chat/ChatMessage";
 import ImageUploadZone from "@/components/chat/ImageUploadZone";
 import GeneratedImageCard from "@/components/chat/GeneratedImageCard";
+import { useImageGeneration } from "@/hooks/useImageGeneration";
 
 interface Message {
   id: string;
@@ -48,6 +48,7 @@ const Chat = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const referenceInputRef = useRef<HTMLInputElement>(null);
+  const { generateImage, isGenerating: aiGenerating, error: generationError } = useImageGeneration();
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() && uploadedImages.length === 0) return;
@@ -62,27 +63,56 @@ const Chat = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage("");
     setIsGenerating(true);
 
-    // Simulate AI response with image generation
-    setTimeout(() => {
-      const aiMessage: Message = {
+    try {
+      // Use real OpenAI API to generate image
+      const result = await generateImage({
+        prompt: currentInput || "Create a professional food photograph perfect for social media",
+        rawImages: uploadedImages,
+        referenceImage: referenceImage || undefined,
+        restaurantInfo: {
+          name: "Your Restaurant", // TODO: Get from user profile/onboarding
+          cuisineType: "International", // TODO: Get from user profile/onboarding
+          brandPersonality: "friendly" // TODO: Get from user profile/onboarding
+        }
+      });
+
+      if (result) {
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: "I've generated a stunning professional image of your dish! Here's what I created along with an engaging caption and hashtags perfect for your social media.",
+          generatedImage: result,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        // Handle error case
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: generationError || "Sorry, I couldn't generate an image at this time. Please check your API key configuration and try again.",
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('Failed to generate image:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: "I've generated a stunning professional image of your dish! Here's what I created along with an engaging caption and hashtags perfect for your social media.",
-        generatedImage: {
-          url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500&h=500&fit=crop",
-          caption: "🍕 Freshly baked perfection! Our signature wood-fired pizza with house-made sauce, premium mozzarella, and garden-fresh basil. Every bite is a taste of authentic Italian tradition. What's your favorite pizza topping?",
-          hashtags: ["#pizza", "#woodfired", "#italian", "#fresh", "#authentic", "#foodie", "#restaurant", "#delicious", "#homemade", "#traditional", "#basil", "#mozzarella", "#foodphotography", "#yummy", "#instafood"]
-        },
+        content: "Sorry, there was an error generating your image. Please make sure your OpenAI API key is configured correctly.",
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsGenerating(false);
       setUploadedImages([]);
       setReferenceImage(null);
-    }, 3000);
+    }
   };
 
   const handleFileUpload = (files: File[]) => {
@@ -127,14 +157,29 @@ const Chat = () => {
             <ChatMessage key={message.id} message={message} />
           ))}
           
-          {isGenerating && (
+          {(isGenerating || aiGenerating) && (
             <div className="flex justify-start">
               <Card className="max-w-xs">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>
-                    <span className="text-sm text-gray-600">Generating your image...</span>
+                    <span className="text-sm text-gray-600">
+                      {aiGenerating ? "Generating your image with AI..." : "Processing..."}
+                    </span>
                   </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {generationError && (
+            <div className="flex justify-start">
+              <Card className="max-w-md border-red-200 bg-red-50">
+                <CardContent className="p-4">
+                  <p className="text-sm text-red-800">{generationError}</p>
+                  <p className="text-xs text-red-600 mt-1">
+                    Make sure to replace 'YOUR_OPENAI_API_KEY_HERE' with your actual OpenAI API key in src/services/openai.ts
+                  </p>
                 </CardContent>
               </Card>
             </div>
