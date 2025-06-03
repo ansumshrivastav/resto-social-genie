@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Camera, Sparkles, Share2, Zap, Users, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import AuthModal from "@/components/auth/AuthModal";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 
@@ -11,10 +11,11 @@ const Index = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
   const handleGetStarted = () => {
     if (isLoggedIn) {
-      setShowOnboarding(true);
+      navigate("/chat");
     } else {
       setShowAuthModal(true);
     }
@@ -26,6 +27,11 @@ const Index = () => {
     setShowOnboarding(true);
   };
 
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    navigate("/chat");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
       {/* Header */}
@@ -35,12 +41,20 @@ const Index = () => {
           <span className="text-2xl font-bold text-gray-900">RestoGenie</span>
         </div>
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => setShowAuthModal(true)}>
-            Sign In
-          </Button>
-          <Button onClick={handleGetStarted}>
-            Get Started
-          </Button>
+          {isLoggedIn ? (
+            <Button onClick={() => navigate("/chat")}>
+              Go to Chat
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => setShowAuthModal(true)}>
+                Sign In
+              </Button>
+              <Button onClick={handleGetStarted}>
+                Get Started
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
@@ -173,6 +187,7 @@ const Index = () => {
       <OnboardingModal 
         isOpen={showOnboarding} 
         onClose={() => setShowOnboarding(false)}
+        onComplete={handleOnboardingComplete}
       />
     </div>
   );
