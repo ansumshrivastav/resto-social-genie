@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,9 +11,10 @@ import { ChevronRight, ChevronLeft, Store, Globe, MessageSquare } from "lucide-r
 interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onComplete: () => void;
 }
 
-const OnboardingModal = ({ isOpen, onClose }: OnboardingModalProps) => {
+const OnboardingModal = ({ isOpen, onClose, onComplete }: OnboardingModalProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     businessName: "",
@@ -51,7 +51,7 @@ const OnboardingModal = ({ isOpen, onClose }: OnboardingModalProps) => {
   const handleComplete = () => {
     // TODO: Save onboarding data to Supabase
     console.log("Onboarding completed:", formData);
-    onClose();
+    onComplete();
   };
 
   const renderStep = () => {
